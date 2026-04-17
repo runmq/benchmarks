@@ -1,0 +1,70 @@
+# ============================================================================
+# RunMQ vs BullMQ — Benchmark Infrastructure
+# ============================================================================
+# Both brokers are allocated identical resources (2 CPUs, 1 GB RAM) to ensure
+# neither has an unfair hardware advantage. The benchmark runner gets 2 CPUs
+# and 512 MB — enough for Node.js without competing with the brokers.
+#
+# Run:  docker compose up --build --abort-on-container-exit benchmark
+# Stop: docker compose down
+# ============================================================================
+
+services:
+  # --------------------------------------------------------------------------
+  # RabbitMQ — broker for RunMQ
+  # Using base alpine image (no management plugin overhead).
+  # --------------------------------------------------------------------------
+  rabbitmq:
+    image: rabbitmq:3-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1G
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 5s
+      timeout: 10s
+      retries: 15
+
+  # --------------------------------------------------------------------------
+  # Redis — broker for BullMQ
+  # Default config: in-memory storage, no AOF/RDB persistence.
+  # --------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1G
+    healthcheck:
+      test: redis-cli ping
+      interval: 5s
+      timeout: 10s
+      retries: 15
+
+  # --------------------------------------------------------------------------
+  # Benchmark runner
+  # --------------------------------------------------------------------------
+  benchmark:
+    build: .
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 512M
+    volumes:
+      - ./results:/app/results

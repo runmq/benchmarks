@@ -1,0 +1,19 @@
+{
+  "name": "runmq-benchmark",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node --expose-gc dist/runner.js",
+    "benchmark": "docker compose up --build --abort-on-container-exit benchmark && docker compose down"
+  },
+  "dependencies": {
+    "bullmq": "^5.52.1",
+    "runmq": "^1.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.3"
+  }
+}
