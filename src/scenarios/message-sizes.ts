@@ -12,37 +12,38 @@
 import type { QueueAdapter, ScenarioResult } from '../types.js';
 import { generatePayload, forceGC, sleep } from '../types.js';
 
-const TOTAL_MESSAGES = 10_000;
 const BATCH_SIZE = 500;
 const SIZES = [
-  { label: '100B', bytes: 100 },
-  { label: '1KB', bytes: 1_024 },
-  { label: '10KB', bytes: 10_240 },
+  { label: '100B', bytes: 100, pubCount: 500_000, conCount: 100_000 },
+  { label: '1KB', bytes: 1_024, pubCount: 500_000, conCount: 100_000 },
+  { label: '10KB', bytes: 10_240, pubCount: 150_000, conCount: 50_000 },
 ];
 
 async function runPublish(
   adapter: QueueAdapter,
   sizeBytes: number,
+  totalMessages: number,
   topicSuffix: string,
 ): Promise<number> {
   const topic = `bench-size-pub-${topicSuffix}-${sizeBytes}`;
   await adapter.purge(topic);
 
-  // Generate per-batch to avoid OOM on large payloads (50k x 10KB = 500MB)
+  // Generate per-batch to avoid OOM on large payloads
   const start = performance.now();
-  for (let i = 0; i < TOTAL_MESSAGES; i += BATCH_SIZE) {
-    const batch = Array.from({ length: Math.min(BATCH_SIZE, TOTAL_MESSAGES - i) }, () => generatePayload(sizeBytes));
+  for (let i = 0; i < totalMessages; i += BATCH_SIZE) {
+    const batch = Array.from({ length: Math.min(BATCH_SIZE, totalMessages - i) }, () => generatePayload(sizeBytes));
     await adapter.publishBatch(topic, batch);
   }
   const elapsed = performance.now() - start;
 
   await adapter.purge(topic);
-  return (TOTAL_MESSAGES / elapsed) * 1000;
+  return (totalMessages / elapsed) * 1000;
 }
 
 async function runConsume(
   adapter: QueueAdapter,
   sizeBytes: number,
+  totalMessages: number,
   topicSuffix: string,
 ): Promise<number> {
   const topic = `bench-size-con-${topicSuffix}-${sizeBytes}`;
@@ -59,18 +60,18 @@ async function runConsume(
     if (consumed === 0) firstConsumedAt = now;
     consumed++;
     lastConsumedAt = now;
-    if (consumed >= TOTAL_MESSAGES) resolveDone();
+    if (consumed >= totalMessages) resolveDone();
   });
 
   await sleep(500);
 
-  for (let i = 0; i < TOTAL_MESSAGES; i += BATCH_SIZE) {
-    const batch = Array.from({ length: Math.min(BATCH_SIZE, TOTAL_MESSAGES - i) }, () => generatePayload(sizeBytes));
+  for (let i = 0; i < totalMessages; i += BATCH_SIZE) {
+    const batch = Array.from({ length: Math.min(BATCH_SIZE, totalMessages - i) }, () => generatePayload(sizeBytes));
     await adapter.publishBatch(topic, batch);
   }
 
   const timeout = setTimeout(() => {
-    console.log(`    WARNING: Only consumed ${consumed}/${TOTAL_MESSAGES}`);
+    console.log(`    WARNING: Only consumed ${consumed}/${totalMessages}`);
     resolveDone();
   }, 120_000);
   await done;
@@ -89,16 +90,16 @@ export async function run(
 ): Promise<ScenarioResult> {
   const metrics: ScenarioResult['metrics'] = {};
 
-  for (const { label, bytes } of SIZES) {
+  for (const { label, bytes, pubCount, conCount } of SIZES) {
     forceGC();
     await sleep(1000);
-    console.log(`  [message-sizes] ${label} publish — RunMQ...`);
-    const runmqPub = await runPublish(runmq, bytes, 'runmq');
+    console.log(`  [message-sizes] ${label} publish (${pubCount.toLocaleString()} msgs) — RunMQ...`);
+    const runmqPub = await runPublish(runmq, bytes, pubCount, 'runmq');
 
     forceGC();
     await sleep(1000);
-    console.log(`  [message-sizes] ${label} publish — BullMQ...`);
-    const bullmqPub = await runPublish(bullmq, bytes, 'bullmq');
+    console.log(`  [message-sizes] ${label} publish (${pubCount.toLocaleString()} msgs) — BullMQ...`);
+    const bullmqPub = await runPublish(bullmq, bytes, pubCount, 'bullmq');
 
     metrics[`Publish ${label}`] = {
       runmq: { value: Math.round(runmqPub), unit: 'msg/s' },
@@ -107,13 +108,13 @@ export async function run(
 
     forceGC();
     await sleep(1000);
-    console.log(`  [message-sizes] ${label} consume — RunMQ...`);
-    const runmqCon = await runConsume(runmq, bytes, 'runmq');
+    console.log(`  [message-sizes] ${label} consume (${conCount.toLocaleString()} msgs) — RunMQ...`);
+    const runmqCon = await runConsume(runmq, bytes, conCount, 'runmq');
 
     forceGC();
     await sleep(1000);
-    console.log(`  [message-sizes] ${label} consume — BullMQ...`);
-    const bullmqCon = await runConsume(bullmq, bytes, 'bullmq');
+    console.log(`  [message-sizes] ${label} consume (${conCount.toLocaleString()} msgs) — BullMQ...`);
+    const bullmqCon = await runConsume(bullmq, bytes, conCount, 'bullmq');
 
     metrics[`Consume ${label}`] = {
       runmq: { value: Math.round(runmqCon), unit: 'msg/s' },

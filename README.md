@@ -28,22 +28,23 @@ docker compose down
 
 ## What's Tested
 
-Each scenario runs **4 times** (first run discarded as warmup, last 3 measured). Results show **mean ± standard deviation**.
+Each scenario runs **3 times**. Results show **mean ± standard deviation**. Message counts are calibrated per scenario to ensure each test runs for at least 3 seconds, avoiding rate extrapolation from short bursts.
 
 | Scenario | Messages per run | What It Measures |
 |---|---|---|
-| **Publish Throughput** | 100,000 | Batch publish rate using each library's optimal bulk mechanism |
+| **Publish Throughput** | 1,000,000 | Batch publish rate using each library's optimal bulk mechanism |
 | **Consume Throughput** | 100,000 | Messages consumed per second with a single no-op consumer |
 | **End-to-End Latency** | 1,000 | User-observable latency from publish API call to consumer handler (p50/p95/p99) |
 | **Concurrent Consumers** | 50,000 x4 | Throughput scaling at 1, 2, 4, 8 concurrent consumers |
-| **Message Sizes** | 50,000 x3 | Impact of 100B, 1KB, 10KB payloads on publish and consume |
-| **Reliability Overhead** | 50,000 x2 | Cost of enabling retries (3 attempts, 100ms delay) |
+| **Message Sizes** | 500K (100B), 500K (1KB), 150K pub / 50K consume (10KB) | Impact of payload size on publish and consume |
+| **Reliability Overhead** | 100,000 x2 | Cost of enabling retries (3 attempts, 100ms delay) |
 
 ## Statistical Methodology
 
-- **4 runs per scenario**: First run is discarded as JIT/cache warmup. Last 3 runs are measured.
-- **Mean ± stddev**: All results report the arithmetic mean and standard deviation across measured runs.
-- **100K messages**: Large message counts reduce variance from per-message timing jitter.
+- **3 runs per scenario**: All runs are measured and averaged.
+- **Mean ± stddev**: All results report the arithmetic mean and standard deviation across runs.
+- **No extrapolation**: Message counts are sized so each test runs for 3+ seconds at the fastest library's rate, preventing inflated msg/s from sub-second bursts.
+- **Per-batch payload generation**: Payloads are generated in batches of 500 to prevent OOM at high message counts (e.g., 1M publish).
 - **GC isolation**: `global.gc()` (double-pass) is forced before every library run across all iterations.
 - **Equal settling time**: Both libraries get identical 1000ms sleep before each run.
 
@@ -111,7 +112,7 @@ Each scenario runs **4 times** (first run discarded as warmup, last 3 measured).
 
 ### Infrastructure
 
-- **Equal Docker resources**: Both RabbitMQ and Redis receive identical limits — 2 CPUs and 1 GB RAM. The benchmark runner gets 2 CPUs and 512 MB.
+- **Equal Docker resources**: Both RabbitMQ and Redis receive identical limits — 2 CPUs and 1 GB RAM. The benchmark runner gets 2 CPUs and 8 GB.
 - **No management overhead**: RabbitMQ uses the base `rabbitmq:3-alpine` image (no management plugin HTTP server). Redis uses `redis:7-alpine`.
 - **No host port mapping**: Brokers communicate over Docker's internal network only.
 
@@ -132,7 +133,7 @@ Both libraries are tuned for maximum throughput:
 
 ### Execution
 
-- **Multi-run averaging**: Each scenario runs 4 times. First run discarded as warmup. Results are mean ± stddev of 3 measured runs.
+- **Multi-run averaging**: Each scenario runs 3 times. Results are mean ± stddev.
 - **Sequential runs**: Only one library is tested at a time. No resource contention.
 - **GC before each run**: `global.gc()` is called (double-pass) before each library's run in every iteration.
 - **Equal settling time**: Both libraries get identical 1000ms sleep before each run.
@@ -163,7 +164,7 @@ These are genuine architectural differences between the two systems:
 
 - **Higher msg/s = better** for throughput scenarios
 - **Lower ms = better** for latency scenarios
-- Results show **mean ± standard deviation** across 3 measured runs
+- Results show **mean ± standard deviation** across 3 runs
 - The HTML report shows percentage differences in the summary table
 - Raw JSON data is saved to `results/results.json` for further analysis
 
@@ -171,7 +172,7 @@ These are genuine architectural differences between the two systems:
 
 To change message counts, edit the `TOTAL_MESSAGES` constant in each scenario file under `src/scenarios/`.
 
-To change the number of runs, edit `TOTAL_RUNS` and `WARMUP_RUNS` in `src/runner.ts`.
+To change the number of runs, edit `TOTAL_RUNS` in `src/runner.ts`.
 
 Rebuild with:
 
@@ -202,4 +203,4 @@ If you find additional bias in either direction, please open an issue.
 
 - Docker Engine 20+
 - Docker Compose V2
-- ~2 GB free memory (for both brokers + runner)
+- ~10 GB free memory (1 GB per broker + 8 GB for runner)

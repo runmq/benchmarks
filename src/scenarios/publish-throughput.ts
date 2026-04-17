@@ -18,7 +18,7 @@
 import type { QueueAdapter, ScenarioResult } from '../types.js';
 import { generatePayload, forceGC, sleep } from '../types.js';
 
-const TOTAL_MESSAGES = 100_000;
+const TOTAL_MESSAGES = 1_000_000;
 const BATCH_SIZE = 500;
 const WARMUP = 100;
 const TOPIC = 'bench-publish';
@@ -32,13 +32,10 @@ async function runFor(adapter: QueueAdapter): Promise<number> {
   await sleep(500);
   forceGC();
 
-  // Pre-generate all payloads so generation time doesn't affect measurement
-  const messages = Array.from({ length: TOTAL_MESSAGES }, () => generatePayload(100));
-
-  // Timed run — publish in batches
+  // Timed run — generate per-batch to avoid OOM at 1M messages
   const start = performance.now();
   for (let i = 0; i < TOTAL_MESSAGES; i += BATCH_SIZE) {
-    const batch = messages.slice(i, i + BATCH_SIZE);
+    const batch = Array.from({ length: Math.min(BATCH_SIZE, TOTAL_MESSAGES - i) }, () => generatePayload(100));
     await adapter.publishBatch(TOPIC, batch);
   }
   const elapsed = performance.now() - start;

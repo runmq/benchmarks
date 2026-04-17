@@ -63,9 +63,9 @@ async function runFor(
   await sleep(500);
 
   console.log(`    Publishing ${TOTAL_MESSAGES} messages...`);
-  const messages = Array.from({ length: TOTAL_MESSAGES }, () => generatePayload(100));
   for (let i = 0; i < TOTAL_MESSAGES; i += 500) {
-    await adapter.publishBatch(topic, messages.slice(i, i + 500));
+    const batch = Array.from({ length: Math.min(500, TOTAL_MESSAGES - i) }, () => generatePayload(100));
+    await adapter.publishBatch(topic, batch);
   }
 
   const timeout = setTimeout(() => {

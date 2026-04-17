@@ -20,8 +20,8 @@ import * as concurrentConsumers from './scenarios/concurrent-consumers.js';
 import * as messageSizes from './scenarios/message-sizes.js';
 import * as reliability from './scenarios/reliability.js';
 
-const TOTAL_RUNS = 4;    // 1 warmup + 3 measured
-const WARMUP_RUNS = 1;   // First N runs discarded
+const TOTAL_RUNS = 3;
+const WARMUP_RUNS = 0;
 
 function aggregateResults(runs: ScenarioResult[]): ScenarioResult {
   const measured = runs.slice(WARMUP_RUNS);
@@ -48,7 +48,7 @@ function aggregateResults(runs: ScenarioResult[]): ScenarioResult {
 
   return {
     scenario: runs[0].scenario,
-    description: `${runs[0].description} (mean of ${measured.length} runs, first run discarded as warmup)`,
+    description: `${runs[0].description} (mean of ${measured.length} runs)`,
     metrics,
   };
 }
@@ -63,7 +63,7 @@ async function main() {
   console.log(`RabbitMQ: ${config.rabbitmqUrl}`);
   console.log(`Redis:    ${config.redisHost}:${config.redisPort}`);
   console.log(`GC:       ${global.gc ? 'enabled (--expose-gc)' : 'DISABLED — results may be less accurate'}`);
-  console.log(`Runs:     ${TOTAL_RUNS} per scenario (first ${WARMUP_RUNS} discarded as warmup)`);
+  console.log(`Runs:     ${TOTAL_RUNS} per scenario`);
   console.log('');
 
   const runmq = new RunMQAdapter(config.rabbitmqUrl);
@@ -88,8 +88,7 @@ async function main() {
     const runResults: ScenarioResult[] = [];
 
     for (let r = 0; r < TOTAL_RUNS; r++) {
-      const label = r < WARMUP_RUNS ? 'warmup' : `run ${r - WARMUP_RUNS + 1}/${TOTAL_RUNS - WARMUP_RUNS}`;
-      console.log(`[${i + 1}/${scenarios.length}] ${s.name} — ${label}`);
+      console.log(`[${i + 1}/${scenarios.length}] ${s.name} — run ${r + 1}/${TOTAL_RUNS}`);
       try {
         const result = await s.fn();
         runResults.push(result);
@@ -100,7 +99,7 @@ async function main() {
           );
         }
       } catch (err) {
-        console.error(`  ERROR in ${s.name} ${label}:`, err);
+        console.error(`  ERROR in ${s.name} run ${r + 1}:`, err);
       }
 
       forceGC();

@@ -16,7 +16,7 @@ import { Queue, Worker } from 'bullmq';
 import type { ScenarioResult, BenchmarkConfig } from '../types.js';
 import { generatePayload, forceGC, sleep } from '../types.js';
 
-const TOTAL_MESSAGES = 50_000;
+const TOTAL_MESSAGES = 100_000;
 const noop = () => {};
 const silentLogger = {
   log: noop, error: noop, warn: noop, info: noop, debug: noop, verbose: noop,

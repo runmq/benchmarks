@@ -13,7 +13,7 @@
 import type { QueueAdapter, ScenarioResult } from '../types.js';
 import { generatePayload, forceGC, sleep } from '../types.js';
 
-const TOTAL_MESSAGES = 10_000;
+const TOTAL_MESSAGES = 50_000;
 const CONCURRENCY_LEVELS = [1, 2, 4, 8];
 
 async function runFor(
@@ -41,9 +41,9 @@ async function runFor(
 
   await sleep(500);
 
-  const messages = Array.from({ length: TOTAL_MESSAGES }, () => generatePayload(100));
   for (let i = 0; i < TOTAL_MESSAGES; i += 500) {
-    await adapter.publishBatch(topic, messages.slice(i, i + 500));
+    const batch = Array.from({ length: Math.min(500, TOTAL_MESSAGES - i) }, () => generatePayload(100));
+    await adapter.publishBatch(topic, batch);
   }
 
   const timeout = setTimeout(() => {
