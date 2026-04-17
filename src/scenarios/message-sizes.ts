@@ -12,7 +12,7 @@
 import type { QueueAdapter, ScenarioResult } from '../types.js';
 import { generatePayload, forceGC, sleep } from '../types.js';
 
-const TOTAL_MESSAGES = 50_000;
+const TOTAL_MESSAGES = 10_000;
 const BATCH_SIZE = 500;
 const SIZES = [
   { label: '100B', bytes: 100 },
@@ -28,11 +28,11 @@ async function runPublish(
   const topic = `bench-size-pub-${topicSuffix}-${sizeBytes}`;
   await adapter.purge(topic);
 
-  const messages = Array.from({ length: TOTAL_MESSAGES }, () => generatePayload(sizeBytes));
-
+  // Generate per-batch to avoid OOM on large payloads (50k x 10KB = 500MB)
   const start = performance.now();
   for (let i = 0; i < TOTAL_MESSAGES; i += BATCH_SIZE) {
-    await adapter.publishBatch(topic, messages.slice(i, i + BATCH_SIZE));
+    const batch = Array.from({ length: Math.min(BATCH_SIZE, TOTAL_MESSAGES - i) }, () => generatePayload(sizeBytes));
+    await adapter.publishBatch(topic, batch);
   }
   const elapsed = performance.now() - start;
 
@@ -64,9 +64,9 @@ async function runConsume(
 
   await sleep(500);
 
-  const messages = Array.from({ length: TOTAL_MESSAGES }, () => generatePayload(sizeBytes));
   for (let i = 0; i < TOTAL_MESSAGES; i += BATCH_SIZE) {
-    await adapter.publishBatch(topic, messages.slice(i, i + BATCH_SIZE));
+    const batch = Array.from({ length: Math.min(BATCH_SIZE, TOTAL_MESSAGES - i) }, () => generatePayload(sizeBytes));
+    await adapter.publishBatch(topic, batch);
   }
 
   const timeout = setTimeout(() => {

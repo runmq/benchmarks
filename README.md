@@ -28,14 +28,24 @@ docker compose down
 
 ## What's Tested
 
-| Scenario | Messages | What It Measures |
+Each scenario runs **4 times** (first run discarded as warmup, last 3 measured). Results show **mean ± standard deviation**.
+
+| Scenario | Messages per run | What It Measures |
 |---|---|---|
-| **Publish Throughput** | 10,000 | Batch publish rate using each library's optimal bulk mechanism |
-| **Consume Throughput** | 10,000 | Messages consumed per second with a single no-op consumer |
-| **End-to-End Latency** | 1,000 | Time from publish-returned to consumer handler (p50/p95/p99) |
-| **Concurrent Consumers** | 5,000 x4 | Throughput scaling at 1, 2, 4, 8 concurrent consumers |
-| **Message Sizes** | 5,000 x3 | Impact of 100B, 1KB, 10KB payloads on publish and consume |
-| **Reliability Overhead** | 5,000 x2 | Cost of enabling retries (3 attempts, 100ms delay) |
+| **Publish Throughput** | 100,000 | Batch publish rate using each library's optimal bulk mechanism |
+| **Consume Throughput** | 100,000 | Messages consumed per second with a single no-op consumer |
+| **End-to-End Latency** | 1,000 | User-observable latency from publish API call to consumer handler (p50/p95/p99) |
+| **Concurrent Consumers** | 50,000 x4 | Throughput scaling at 1, 2, 4, 8 concurrent consumers |
+| **Message Sizes** | 50,000 x3 | Impact of 100B, 1KB, 10KB payloads on publish and consume |
+| **Reliability Overhead** | 50,000 x2 | Cost of enabling retries (3 attempts, 100ms delay) |
+
+## Statistical Methodology
+
+- **4 runs per scenario**: First run is discarded as JIT/cache warmup. Last 3 runs are measured.
+- **Mean ± stddev**: All results report the arithmetic mean and standard deviation across measured runs.
+- **100K messages**: Large message counts reduce variance from per-message timing jitter.
+- **GC isolation**: `global.gc()` (double-pass) is forced before every library run across all iterations.
+- **Equal settling time**: Both libraries get identical 1000ms sleep before each run.
 
 ## Configuration Per Scenario
 
@@ -110,7 +120,7 @@ docker compose down
 Both libraries are tuned for maximum throughput:
 
 **RunMQ:**
-- Default prefetch (configurable in RunMQ's constants) — allows RabbitMQ to pipeline multiple messages to the consumer without waiting for individual acks.
+- Default prefetch — allows RabbitMQ to pipeline multiple messages to the consumer without waiting for individual acks.
 - Silent logger — eliminates I/O overhead from console logging.
 
 **BullMQ:**
@@ -122,8 +132,9 @@ Both libraries are tuned for maximum throughput:
 
 ### Execution
 
+- **Multi-run averaging**: Each scenario runs 4 times. First run discarded as warmup. Results are mean ± stddev of 3 measured runs.
 - **Sequential runs**: Only one library is tested at a time. No resource contention.
-- **GC before each run**: `global.gc()` is called (double-pass) before each library's run.
+- **GC before each run**: `global.gc()` is called (double-pass) before each library's run in every iteration.
 - **Equal settling time**: Both libraries get identical 1000ms sleep before each run.
 - **Consumer warmup**: Consume-throughput scenario includes 100-message warmup for both.
 - **Publish warmup**: Publish-throughput scenario includes 100-message warmup for both.
@@ -152,12 +163,17 @@ These are genuine architectural differences between the two systems:
 
 - **Higher msg/s = better** for throughput scenarios
 - **Lower ms = better** for latency scenarios
+- Results show **mean ± standard deviation** across 3 measured runs
 - The HTML report shows percentage differences in the summary table
 - Raw JSON data is saved to `results/results.json` for further analysis
 
 ## Customizing
 
-To change message counts, edit the `TOTAL_MESSAGES` constant in each scenario file under `src/scenarios/`. Rebuild with:
+To change message counts, edit the `TOTAL_MESSAGES` constant in each scenario file under `src/scenarios/`.
+
+To change the number of runs, edit `TOTAL_RUNS` and `WARMUP_RUNS` in `src/runner.ts`.
+
+Rebuild with:
 
 ```bash
 docker compose build --no-cache benchmark

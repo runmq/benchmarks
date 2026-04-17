@@ -65,6 +65,6 @@ services:
       resources:
         limits:
           cpus: "2"
-          memory: 512M
+          memory: 2G
     volumes:
       - ./results:/app/results

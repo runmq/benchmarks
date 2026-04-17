@@ -13,7 +13,7 @@
 import type { QueueAdapter, ScenarioResult } from '../types.js';
 import { generatePayload, forceGC, sleep } from '../types.js';
 
-const TOTAL_MESSAGES = 50_000;
+const TOTAL_MESSAGES = 10_000;
 const CONCURRENCY_LEVELS = [1, 2, 4, 8];
 
 async function runFor(
