@@ -1,14 +1,22 @@
 FROM node:20-alpine
 
-WORKDIR /app
+WORKDIR /workspace
 
-# Install dependencies (runmq and bullmq from npm)
-COPY package.json package-lock.json* ./
+# Copy queue package and install its runtime deps so Node can resolve imports
+# from /workspace/queue/dist/index.js correctly.
+# To update queue: run `npm run build` in the queue package before docker compose.
+COPY queue/package.json ./queue/
+RUN cd queue && npm install --omit=dev
+COPY queue/dist ./queue/dist
+
+# Install benchmark dependencies (runmq resolves from local ../queue)
+COPY benchmark-repo/package.json ./benchmark-repo/
+WORKDIR /workspace/benchmark-repo
 RUN npm install
 
 # Copy source and build
-COPY tsconfig.json ./
-COPY src ./src
+COPY benchmark-repo/tsconfig.json .
+COPY benchmark-repo/src ./src
 RUN npx tsc
 
 # Create results directory

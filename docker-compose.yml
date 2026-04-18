@@ -48,10 +48,12 @@ services:
       retries: 15
 
   # --------------------------------------------------------------------------
-  # Benchmark runner
+  # Benchmark runner (RunMQ vs BullMQ — full suite)
   # --------------------------------------------------------------------------
   benchmark:
-    build: .
+    build:
+      context: ..
+      dockerfile: benchmark-repo/Dockerfile
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -67,4 +69,25 @@ services:
           cpus: "2"
           memory: 8G
     volumes:
-      - ./results:/app/results
+      - ./results:/workspace/benchmark-repo/results
+
+  # --------------------------------------------------------------------------
+  # Latency runner (Phase 1 micro-benchmarks + Phase 2 burst sweep)
+  # --------------------------------------------------------------------------
+  latency:
+    build:
+      context: ..
+      dockerfile: benchmark-repo/Dockerfile
+    command: ["node", "--expose-gc", "dist/latency.js"]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 8G
+    volumes:
+      - ./results:/workspace/benchmark-repo/results

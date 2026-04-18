@@ -6,13 +6,13 @@
   "scripts": {
     "build": "tsc",
     "start": "node --expose-gc dist/runner.js",
-    "latency": "node --expose-gc dist/latency.js",
+    "latency": "docker compose up --build --abort-on-container-exit latency && docker compose down",
     "benchmark": "docker compose up --build --abort-on-container-exit benchmark && docker compose down"
   },
   "dependencies": {
     "amqplib": "^1.0.3",
     "bullmq": "^5.52.1",
-    "runmq": "^1.5.0"
+    "runmq": "file:../queue"
   },
   "devDependencies": {
     "@types/amqplib": "^0.10.8",
