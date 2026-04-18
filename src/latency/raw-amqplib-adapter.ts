@@ -63,10 +63,7 @@ export class RawAmqplibAdapter implements QueueAdapter {
   }
 
   async stopConsumer(): Promise<void> {
-    if (this.consumerTag && this.channel) {
-      try { await this.channel.cancel(this.consumerTag); } catch { /* ignore */ }
-      this.consumerTag = null;
-    }
+    this.consumerTag = null;
     // Reconnect to get a clean channel (matching RunMQAdapter.stopConsumer behaviour)
     await this.teardown();
     await this.setup();
