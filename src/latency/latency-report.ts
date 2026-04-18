@@ -207,12 +207,12 @@ microBody.innerHTML += \`
 
 // ── Phase 2 chart ──
 const labels = sweep.runmq.levels.map(l => \`burst=\${l.burstSize}\`);
-const runmqMean = sweep.runmq.levels.map(l => l.meanMs === -1 ? null : l.meanMs);
-const runmqP99  = sweep.runmq.levels.map(l => l.p99Ms === -1 ? null : l.p99Ms);
-const rawMean   = sweep.raw.levels.map(l => l.meanMs === -1 ? null : l.meanMs);
-const rawP99    = sweep.raw.levels.map(l => l.p99Ms === -1 ? null : l.p99Ms);
+const runmqMean = sweep.runmq.levels.map(l => l.sampleCount === 0 ? null : l.meanMs);
+const runmqP99  = sweep.runmq.levels.map(l => l.sampleCount === 0 ? null : l.p99Ms);
+const rawMean   = sweep.raw.levels.map(l => l.sampleCount === 0 ? null : l.meanMs);
+const rawP99    = sweep.raw.levels.map(l => l.sampleCount === 0 ? null : l.p99Ms);
 const delta     = sweep.runmq.levels.map((l, i) => {
-  if (l.meanMs === -1 || sweep.raw.levels[i].meanMs === -1) return null;
+  if (l.sampleCount === 0 || sweep.raw.levels[i].sampleCount === 0) return null;
   return parseFloat((l.meanMs - sweep.raw.levels[i].meanMs).toFixed(3));
 });
 
@@ -265,7 +265,7 @@ sweep.runmq.levels.forEach((r, i) => {
       <td class="num" style="\${rFailed ? 'color:var(--muted)' : ''}">\${rFailed ? 'N/A' : r.p99Ms + ' ms'}</td>
       <td class="num" style="\${rawFailed ? 'color:var(--muted)' : ''}">\${rawFailed ? 'N/A' : raw.meanMs + ' ±' + raw.stddevMs + ' ms'}</td>
       <td class="num" style="\${rawFailed ? 'color:var(--muted)' : ''}">\${rawFailed ? 'N/A' : raw.p99Ms + ' ms'}</td>
-      <td class="num" style="color:var(--delta);font-weight:600">\${d}</td>
+      <td class="num" style="\${(rFailed || rawFailed) ? 'color:var(--muted)' : 'color:var(--delta);font-weight:600'}">\${d}</td>
     </tr>
   \`;
 });
