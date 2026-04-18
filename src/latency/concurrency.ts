@@ -51,9 +51,9 @@ async function runBurstLevel(
       const sent = sentAt.get(idx);
       if (sent !== undefined) {
         latencies.push(receivedAt - sent);
-        sentAt.delete(idx); // free memory as we go
       }
     }
+    sentAt.delete(idx); // always clean up, warmup or not
 
     consumed++;
     if (consumed >= nextTarget) {
@@ -97,6 +97,19 @@ async function runBurstLevel(
 
   await adapter.stopConsumer();
 
+  if (latencies.length === 0) {
+    console.error(`    ERROR: no latencies recorded for burst=${burstSize} (all bursts timed out?)`);
+    return {
+      burstSize,
+      meanMs: -1,
+      stddevMs: -1,
+      p50Ms: -1,
+      p95Ms: -1,
+      p99Ms: -1,
+      sampleCount: 0,
+    };
+  }
+
   latencies.sort((a, b) => a - b);
 
   return {
@@ -138,6 +151,15 @@ export async function runConcurrencySweep(
       burstSize,
     );
     rawLevels.push(rawResult);
+
+    const expectedSamples = NUM_BURSTS * burstSize;
+    if (runmqResult.sampleCount < expectedSamples) {
+      console.warn(`    WARN: RunMQ only recorded ${runmqResult.sampleCount}/${expectedSamples} samples for burst=${burstSize}`);
+    }
+    if (rawResult.sampleCount < expectedSamples) {
+      console.warn(`    WARN: Raw AMQP only recorded ${rawResult.sampleCount}/${expectedSamples} samples for burst=${burstSize}`);
+    }
+
     console.log(`         mean=${rawResult.meanMs}ms ±${rawResult.stddevMs}  p99=${rawResult.p99Ms}ms`);
     console.log(`         delta (RunMQ overhead): ${(runmqResult.meanMs - rawResult.meanMs).toFixed(3)}ms`);
     console.log('');
