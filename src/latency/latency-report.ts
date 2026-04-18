@@ -207,13 +207,14 @@ microBody.innerHTML += \`
 
 // ── Phase 2 chart ──
 const labels = sweep.runmq.levels.map(l => \`burst=\${l.burstSize}\`);
-const runmqMean = sweep.runmq.levels.map(l => l.meanMs);
-const runmqP99  = sweep.runmq.levels.map(l => l.p99Ms);
-const rawMean   = sweep.raw.levels.map(l => l.meanMs);
-const rawP99    = sweep.raw.levels.map(l => l.p99Ms);
-const delta     = sweep.runmq.levels.map((l, i) =>
-  parseFloat((l.meanMs - sweep.raw.levels[i].meanMs).toFixed(3))
-);
+const runmqMean = sweep.runmq.levels.map(l => l.meanMs === -1 ? null : l.meanMs);
+const runmqP99  = sweep.runmq.levels.map(l => l.p99Ms === -1 ? null : l.p99Ms);
+const rawMean   = sweep.raw.levels.map(l => l.meanMs === -1 ? null : l.meanMs);
+const rawP99    = sweep.raw.levels.map(l => l.p99Ms === -1 ? null : l.p99Ms);
+const delta     = sweep.runmq.levels.map((l, i) => {
+  if (l.meanMs === -1 || sweep.raw.levels[i].meanMs === -1) return null;
+  return parseFloat((l.meanMs - sweep.raw.levels[i].meanMs).toFixed(3));
+});
 
 const ctx = document.getElementById('sweep-chart').getContext('2d');
 new Chart(ctx, {
@@ -252,17 +253,19 @@ new Chart(ctx, {
 const sweepBody = document.getElementById('sweep-body');
 sweep.runmq.levels.forEach((r, i) => {
   const raw = sweep.raw.levels[i];
-  const d = (r.meanMs - raw.meanMs).toFixed(3);
+  const rFailed = r.sampleCount === 0;
+  const rawFailed = raw.sampleCount === 0;
+  const d = (rFailed || rawFailed) ? 'N/A' : (r.meanMs - raw.meanMs).toFixed(3) + ' ms';
   sweepBody.innerHTML += \`
     <tr>
       <td>\${r.burstSize}</td>
-      <td class="num">\${r.meanMs} ±\${r.stddevMs} ms</td>
-      <td class="num">\${r.p50Ms} ms</td>
-      <td class="num">\${r.p95Ms} ms</td>
-      <td class="num">\${r.p99Ms} ms</td>
-      <td class="num">\${raw.meanMs} ±\${raw.stddevMs} ms</td>
-      <td class="num">\${raw.p99Ms} ms</td>
-      <td class="num" style="color:var(--delta);font-weight:600">\${d} ms</td>
+      <td class="num" style="\${rFailed ? 'color:var(--muted)' : ''}">\${rFailed ? 'N/A' : r.meanMs + ' ±' + r.stddevMs + ' ms'}</td>
+      <td class="num" style="\${rFailed ? 'color:var(--muted)' : ''}">\${rFailed ? 'N/A' : r.p50Ms + ' ms'}</td>
+      <td class="num" style="\${rFailed ? 'color:var(--muted)' : ''}">\${rFailed ? 'N/A' : r.p95Ms + ' ms'}</td>
+      <td class="num" style="\${rFailed ? 'color:var(--muted)' : ''}">\${rFailed ? 'N/A' : r.p99Ms + ' ms'}</td>
+      <td class="num" style="\${rawFailed ? 'color:var(--muted)' : ''}">\${rawFailed ? 'N/A' : raw.meanMs + ' ±' + raw.stddevMs + ' ms'}</td>
+      <td class="num" style="\${rawFailed ? 'color:var(--muted)' : ''}">\${rawFailed ? 'N/A' : raw.p99Ms + ' ms'}</td>
+      <td class="num" style="color:var(--delta);font-weight:600">\${d}</td>
     </tr>
   \`;
 });
