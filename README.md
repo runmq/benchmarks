@@ -8,6 +8,29 @@ A fair, reproducible benchmark comparing [RunMQ](https://github.com/runmq/queue)
 >
 > We encourage the community to review the source, run the benchmark themselves, and report any bias.
 
+## Results Summary
+
+Tested on MacBook Pro M4 Max, Docker Desktop, mean of 3 runs ± stddev.
+
+| Scenario | RunMQ | BullMQ | Ratio |
+|---|---|---|---|
+| **Publish Throughput** | 248,770 ±5,970 msg/s | 54,555 ±735 msg/s | **4.6x faster** |
+| **Consume Throughput** | 31,590 ±369 msg/s | 8,433 ±61 msg/s | **3.7x faster** |
+| **E2E Latency (mean)** | 9.53 ±0.04 ms | 0.63 ±0.02 ms | **BullMQ 15x lower** |
+| **E2E Latency (p99)** | 19.41 ±0.12 ms | 2.20 ±0.24 ms | **BullMQ 8.8x lower** |
+| **1 Consumer** | 9,925 ±160 msg/s | 585 ±2 msg/s | **17x faster** |
+| **8 Consumers** | 36,122 ±4,707 msg/s | 3,956 ±35 msg/s | **9.1x faster** |
+| **Publish 100B** | 296,648 ±10,277 msg/s | 53,264 ±1,320 msg/s | **5.6x faster** |
+| **Publish 1KB** | 176,180 ±3,230 msg/s | 42,708 ±107 msg/s | **4.1x faster** |
+| **Publish 10KB** | 48,425 ±595 msg/s | 16,757 ±206 msg/s | **2.9x faster** |
+| **Consume 100B** | 32,833 ±910 msg/s | 8,456 ±92 msg/s | **3.9x faster** |
+| **Consume 1KB** | 30,395 ±1,030 msg/s | 8,009 ±45 msg/s | **3.8x faster** |
+| **Consume 10KB** | 16,545 ±721 msg/s | 5,581 ±60 msg/s | **3.0x faster** |
+| **Reliability (basic)** | 32,615 ±405 msg/s | 8,643 ±58 msg/s | **3.8x faster** |
+| **Reliability (retries)** | 33,271 ±1,150 msg/s | 8,530 ±41 msg/s | **3.9x faster** |
+
+RunMQ wins on throughput across all scenarios. BullMQ wins on latency (in-memory Redis vs disk-backed RabbitMQ). See [Known Limitations](#known-limitations) for important caveats about what these numbers represent.
+
 ## Quick Start
 
 ```bash
@@ -112,7 +135,7 @@ Each scenario runs **3 times**. Results show **mean ± standard deviation**. Mes
 
 ### Infrastructure
 
-- **Equal Docker resources**: Both RabbitMQ and Redis receive identical limits — 2 CPUs and 1 GB RAM. The benchmark runner gets 2 CPUs and 8 GB.
+- **Equal Docker resources**: Both RabbitMQ and Redis receive identical limits — 2 CPUs and 4 GB RAM. The benchmark runner gets 2 CPUs and 8 GB.
 - **No management overhead**: RabbitMQ uses the base `rabbitmq:3-alpine` image (no management plugin HTTP server). Redis uses `redis:7-alpine`.
 - **No host port mapping**: Brokers communicate over Docker's internal network only.
 
@@ -203,4 +226,4 @@ If you find additional bias in either direction, please open an issue.
 
 - Docker Engine 20+
 - Docker Compose V2
-- ~10 GB free memory (1 GB per broker + 8 GB for runner)
+- ~16 GB free memory (4 GB per broker + 8 GB for runner)
