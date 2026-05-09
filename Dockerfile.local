@@ -1,0 +1,22 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install benchmark dependencies (pulls runmq from npm initially)
+COPY package.json package-lock.json* ./
+RUN npm install
+
+# Override the published runmq with a locally-built tarball.
+# run-local.sh produces runmq-local.tgz from ../queue (or $RUNMQ_PATH).
+COPY runmq-local.tgz /tmp/runmq-local.tgz
+RUN npm install /tmp/runmq-local.tgz
+
+# Copy source and build
+COPY tsconfig.json ./
+COPY src ./src
+RUN npx tsc
+
+RUN mkdir -p results
+
+# --expose-gc enables global.gc() for forcing garbage collection between runs.
+CMD ["node", "--expose-gc", "dist/runner.js"]

@@ -6,10 +6,15 @@ cd "$SCRIPT_DIR"
 
 echo "=== RunMQ vs BullMQ Benchmark ==="
 echo ""
+echo "Scenarios: ${SCENARIOS:-all}    Runs: ${RUNS:-3}"
 echo "Starting benchmark (this may take several minutes)..."
 echo ""
 
-docker compose up --build --abort-on-container-exit benchmark
+# SCENARIOS / RUNS env vars are passed through to the container via
+# docker-compose.yml. Example:
+#   SCENARIOS=publish,e2e RUNS=5 ./run.sh
+SCENARIOS="${SCENARIOS:-}" RUNS="${RUNS:-}" \
+  docker compose up --build --abort-on-container-exit benchmark
 
 echo ""
 

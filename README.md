@@ -42,6 +42,26 @@ RunMQ wins on throughput across all scenarios. Latency is now competitive — Ru
 
 This builds the Docker images, runs all benchmarks, generates an HTML report at `results/report.html`, and opens it in your browser.
 
+### Selecting Scenarios and Run Counts
+
+Pick which scenarios run and how many iterations each gets via env vars or CLI flags.
+
+Scenario keys: `publish`, `consume`, `e2e`, `concurrent`, `sizes`, `reliability` (or `all`).
+
+```bash
+# Dockerized runs — env vars are forwarded into the container
+SCENARIOS=e2e,publish RUNS=5 ./run.sh
+SCENARIOS=reliability ./run-local.sh
+
+# Direct (no Docker) — requires local RabbitMQ + Redis, then build first
+npm run build
+npm run bench:e2e                              # single scenario shortcut
+npm run bench -- --scenarios=publish,e2e --runs=5
+node --expose-gc dist/runner.js --list         # list available scenarios
+```
+
+Per-scenario npm shortcuts: `bench:publish`, `bench:consume`, `bench:e2e`, `bench:concurrent`, `bench:sizes`, `bench:reliability`. All accept extra flags after `--`, e.g. `npm run bench:e2e -- --runs=10`.
+
 ### Manual Run
 
 ```bash
@@ -50,6 +70,49 @@ docker compose up --build --abort-on-container-exit benchmark
 # Raw data: results/results.json
 docker compose down
 ```
+
+### Run Against a Local Build of RunMQ
+
+By default the benchmark image installs `runmq` from npm. To benchmark a
+local checkout of the RunMQ source instead (e.g. an unreleased branch
+or local change), use:
+
+```bash
+./run-local.sh
+```
+
+The script:
+
+1. Resolves the RunMQ source path — defaults to `../queue` (sibling
+   directory). Override with `RUNMQ_PATH=/path/to/runmq ./run-local.sh`.
+2. Runs `npm install` (if needed) and `npm run build` in that directory.
+3. Runs `npm pack` and drops the resulting tarball at
+   `benchmarks/runmq-local.tgz`.
+4. Builds the benchmark image using `Dockerfile.local`, which installs
+   the tarball over the npm-published `runmq` in `node_modules`.
+5. Runs the full benchmark suite, opens the HTML report, tears down
+   containers, and removes the tarball.
+
+Manual equivalent (after producing `runmq-local.tgz` yourself):
+
+```bash
+# from runmq source dir
+npm install && npm run build
+npm pack
+mv runmq-*.tgz /path/to/benchmarks/runmq-local.tgz
+
+# from benchmarks dir
+docker compose -f docker-compose.yml -f docker-compose.local.yml \
+  up --build --abort-on-container-exit benchmark
+docker compose -f docker-compose.yml -f docker-compose.local.yml down
+```
+
+Notes:
+
+- The version field of the local build does not need to match the
+  version requested in `package.json` — `npm install <tgz>` overrides it.
+- Force a clean rebuild (e.g. after dependency changes) with
+  `docker compose -f docker-compose.yml -f docker-compose.local.yml build --no-cache benchmark`.
 
 ## What's Tested
 

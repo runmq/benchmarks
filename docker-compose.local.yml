@@ -1,0 +1,12 @@
+# Override that swaps the benchmark image for one built against a local
+# runmq tarball (runmq-local.tgz) instead of the published npm version.
+#
+# Use via run-local.sh, or manually:
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up \
+#     --build --abort-on-container-exit benchmark
+
+services:
+  benchmark:
+    build:
+      context: .
+      dockerfile: Dockerfile.local

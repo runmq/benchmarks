@@ -3,3 +3,4 @@ dist
 results/*.html
 results/*.json
 package-lock.json
+runmq-local.tgz

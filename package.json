@@ -6,6 +6,14 @@
   "scripts": {
     "build": "tsc",
     "start": "node --expose-gc dist/runner.js",
+    "list": "node --expose-gc dist/runner.js --list",
+    "bench": "node --expose-gc dist/runner.js",
+    "bench:publish": "node --expose-gc dist/runner.js --scenarios=publish",
+    "bench:consume": "node --expose-gc dist/runner.js --scenarios=consume",
+    "bench:e2e": "node --expose-gc dist/runner.js --scenarios=e2e",
+    "bench:concurrent": "node --expose-gc dist/runner.js --scenarios=concurrent",
+    "bench:sizes": "node --expose-gc dist/runner.js --scenarios=sizes",
+    "bench:reliability": "node --expose-gc dist/runner.js --scenarios=reliability",
     "benchmark": "docker compose up --build --abort-on-container-exit benchmark && docker compose down"
   },
   "dependencies": {

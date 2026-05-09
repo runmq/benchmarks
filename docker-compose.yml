@@ -61,6 +61,8 @@ services:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      SCENARIOS: ${SCENARIOS:-}
+      RUNS: ${RUNS:-}
     deploy:
       resources:
         limits:
