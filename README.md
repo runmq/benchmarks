@@ -14,24 +14,26 @@ Tested on MacBook Pro M4 Max, Docker Desktop, mean of 3 runs ± stddev.
 
 | Scenario | RunMQ | BullMQ | Ratio |
 |---|---|---|---|
-| **Publish Throughput** | 253,104 ±2,754 msg/s | 53,636 ±930 msg/s | **4.7x faster** |
-| **Consume Throughput** | 27,045 ±1,630 msg/s | 8,262 ±80 msg/s | **3.3x faster** |
-| **E2E Latency (mean)** | 0.69 ±0.04 ms | 0.73 ±0.01 ms | **RunMQ 1.1x lower** |
-| **E2E Latency (p50)** | 0.65 ±0.05 ms | 0.60 ±0.02 ms | **BullMQ 1.1x lower** |
-| **E2E Latency (p95)** | 1.35 ±0.02 ms | 1.55 ±0.07 ms | **RunMQ 1.1x lower** |
-| **E2E Latency (p99)** | 2.59 ±0.27 ms | 2.51 ±0.18 ms | **BullMQ 1.0x lower** |
-| **1 Consumer** | 9,594 ±114 msg/s | 559 ±9 msg/s | **17x faster** |
-| **8 Consumers** | 33,991 ±1,997 msg/s | 3,929 ±8 msg/s | **8.7x faster** |
-| **Publish 100B** | 292,402 ±4,810 msg/s | 51,940 ±604 msg/s | **5.6x faster** |
-| **Publish 1KB** | 171,739 ±3,546 msg/s | 42,253 ±828 msg/s | **4.1x faster** |
-| **Publish 10KB** | 48,497 ±1,048 msg/s | 16,976 ±54 msg/s | **2.9x faster** |
-| **Consume 100B** | 28,769 ±745 msg/s | 8,365 ±78 msg/s | **3.4x faster** |
-| **Consume 1KB** | 26,527 ±278 msg/s | 7,789 ±80 msg/s | **3.4x faster** |
-| **Consume 10KB** | 15,984 ±503 msg/s | 5,450 ±59 msg/s | **2.9x faster** |
-| **Reliability (basic)** | 29,187 ±222 msg/s | 8,334 ±43 msg/s | **3.5x faster** |
-| **Reliability (retries)** | 29,700 ±435 msg/s | 8,476 ±40 msg/s | **3.5x faster** |
+| **Publish Throughput** | 67,206 ±1,322 msg/s | 53,702 ±400 msg/s | **1.3x faster** |
+| **Consume Throughput** | 22,120 ±278 msg/s | 8,513 ±76 msg/s | **2.6x faster** |
+| **E2E Latency (mean)** | 0.81 ±0.07 ms | 0.74 ±0.04 ms | **BullMQ 1.1x lower** |
+| **E2E Latency (p50)** | 0.59 ±0.09 ms | 0.57 ±0.04 ms | **BullMQ 1.0x lower** |
+| **E2E Latency (p95)** | 1.88 ±0.21 ms | 1.82 ±0.20 ms | **BullMQ 1.0x lower** |
+| **E2E Latency (p99)** | 2.52 ±0.12 ms | 2.82 ±0.20 ms | **RunMQ 1.1x lower** |
+| **1 Consumer** | 9,072 ±35 msg/s | 558 ±6 msg/s | **16.3x faster** |
+| **2 Consumers** | 14,378 ±211 msg/s | 1,101 ±1 msg/s | **13.1x faster** |
+| **4 Consumers** | 21,149 ±234 msg/s | 2,105 ±14 msg/s | **10.0x faster** |
+| **8 Consumers** | 24,552 ±933 msg/s | 3,880 ±35 msg/s | **6.3x faster** |
+| **Publish 100B** | 66,422 ±2,982 msg/s | 52,120 ±2,521 msg/s | **1.3x faster** |
+| **Publish 1KB** | 55,074 ±2,180 msg/s | 42,408 ±959 msg/s | **1.3x faster** |
+| **Publish 10KB** | 27,821 ±658 msg/s | 16,332 ±588 msg/s | **1.7x faster** |
+| **Consume 100B** | 21,364 ±823 msg/s | 8,131 ±253 msg/s | **2.6x faster** |
+| **Consume 1KB** | 19,417 ±309 msg/s | 7,764 ±51 msg/s | **2.5x faster** |
+| **Consume 10KB** | 10,982 ±153 msg/s | 5,311 ±170 msg/s | **2.1x faster** |
+| **Reliability (basic)** | 27,580 ±1,240 msg/s | 8,326 ±182 msg/s | **3.3x faster** |
+| **Reliability (retries)** | 27,139 ±848 msg/s | 8,282 ±150 msg/s | **3.3x faster** |
 
-RunMQ wins on throughput across all scenarios. Latency is now competitive — RunMQ leads on mean and p95, BullMQ leads on p50 and p99, with all values sub-3ms. See [Known Limitations](#known-limitations) for important caveats about what these numbers represent.
+RunMQ wins on throughput across all scenarios. Latency is competitive — BullMQ leads on mean, p50, and p95 by sub-millisecond margins, RunMQ leads on p99, with all values sub-3ms. RunMQ's `usePublisherConfirms: true` is on by default, so every `publish()` awaits a broker ack — matching BullMQ's confirmed-persistence semantics. See [Known Limitations](#known-limitations) for important caveats about what these numbers represent.
 
 ## Quick Start
 
