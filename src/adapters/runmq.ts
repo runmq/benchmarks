@@ -27,11 +27,13 @@ export class RunMQAdapter implements QueueAdapter {
   }
 
   async setup(): Promise<void> {
-    this.instance = await RunMQ.start({
+    const config = {
       url: this.url,
       maxReconnectAttempts: 5,
       reconnectDelay: 2000,
-    }, silentLogger);
+      ...(process.env.RUNMQ_PUBLISHER_CONFIRMS === 'true' ? { usePublisherConfirms: true } : {}),
+    };
+    this.instance = await RunMQ.start(config as Parameters<typeof RunMQ.start>[0], silentLogger);
   }
 
   async teardown(): Promise<void> {
@@ -41,21 +43,20 @@ export class RunMQAdapter implements QueueAdapter {
     }
   }
 
-  /**
-   * Single-message publish — synchronous, writes to AMQP channel buffer.
-   */
-  publish(topic: string, message: Record<string, unknown>): void {
-    this.instance!.publish(topic, message);
+  async publish(topic: string, message: Record<string, unknown>): Promise<void> {
+    await this.instance!.publish(topic, message);
   }
 
-  /**
-   * Batch publish — tight loop of sync publish() calls.
-   * amqplib automatically batches these into TCP writes.
-   */
+  // Pipeline the batch: fire all publishes, then Promise.all. Matches what a
+  // realistic high-throughput user would write — a tight `await` loop would
+  // serialize on the async publish() signature and under-report the ceiling.
   async publishBatch(topic: string, messages: Record<string, unknown>[]): Promise<void> {
-    for (const msg of messages) {
-      this.instance!.publish(topic, msg);
+    const inst = this.instance!;
+    const pending: Promise<void>[] = new Array(messages.length);
+    for (let i = 0; i < messages.length; i++) {
+      pending[i] = Promise.resolve(inst.publish(topic, messages[i]));
     }
+    await Promise.all(pending);
   }
 
   async startConsumer(
