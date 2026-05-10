@@ -275,7 +275,7 @@ To change Docker resource limits, edit `docker-compose.yml`.
 
 These are inherent limitations that cannot be fully resolved due to architectural differences between the two systems:
 
-1. **Publish throughput compares different guarantees.** RunMQ's `publish()` is synchronous — it writes to an in-process AMQP channel buffer without network confirmation. BullMQ's `addBulk()` awaits a Redis pipeline round-trip with confirmation. Even though both use their optimal bulk pattern, RunMQ is measuring "buffer write speed" while BullMQ is measuring "confirmed persistence speed." There is no way to equalize this without RunMQ supporting publisher confirms, which it currently does not.
+1. **Publish throughput compares different guarantees by default.** RunMQ's `publish()` is fire-and-forget by default — it writes to an in-process AMQP channel buffer without waiting for broker confirmation. BullMQ's `addBulk()` awaits a Redis pipeline round-trip with confirmation. Both use their optimal bulk pattern, so the headline number compares "buffer write speed" against "confirmed persistence speed." With RunMQ's `usePublisherConfirms: true` (added in the publisher-confirms branch), publishes await broker ack like BullMQ — measured at **~56,400 msg/s, still ~80% above BullMQ's ~32,200 msg/s** on the same hardware. So even apples-to-apples on durability guarantees, RunMQ wins on publish throughput; the default-off mode just widens the gap further.
 
 2. **Redis is in-memory, RabbitMQ is disk-backed.** RabbitMQ persists messages to durable queues by default. Redis operates entirely in-memory. This fundamentally affects latency comparisons and will always favor BullMQ on E2E latency. This is a deliberate design tradeoff — not a benchmark flaw.
 
